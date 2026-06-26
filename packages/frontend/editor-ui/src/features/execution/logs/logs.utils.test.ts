@@ -6,11 +6,11 @@ import {
 	createTestWorkflowObject,
 } from '@/__tests__/mocks';
 import {
-	createLogTree,
+	createLogTree as createLogTreeImpl,
 	findSelectedLogEntry,
 	findSubExecutionLocator,
 	getDefaultCollapsedEntries,
-	getTreeNodeData,
+	getTreeNodeData as getTreeNodeDataImpl,
 	mergeStartData,
 	restoreChatHistory,
 	processFiles,
@@ -29,10 +29,23 @@ import {
 	aiModelNode,
 	createTestLogTreeCreationContext,
 } from './__test__/data';
-import type { LogEntrySelection } from './logs.types';
+import type { LogEntrySelection, NodeLogEntry } from './logs.types';
 import type { IExecutionResponse } from '@/features/execution/executions/executions.types';
 import { createTestLogEntry } from './__test__/mocks';
 import { AGENT_NODE_TYPE, CHAT_TRIGGER_NODE_TYPE } from '@/app/constants';
+
+// In commit 1 the log tree contains only node entries. Re-type the tree builders
+// locally so assertions can read `.node`/`.runData` without narrowing at every site.
+type NodeTreeEntry = Omit<NodeLogEntry, 'children' | 'parent'> & {
+	parent?: NodeTreeEntry;
+	children: NodeTreeEntry[];
+};
+const getTreeNodeData = getTreeNodeDataImpl as (
+	...args: Parameters<typeof getTreeNodeDataImpl>
+) => NodeTreeEntry[];
+const createLogTree = createLogTreeImpl as (
+	...args: Parameters<typeof createLogTreeImpl>
+) => NodeTreeEntry[];
 
 describe(getTreeNodeData, () => {
 	it('should generate one node per execution', () => {
