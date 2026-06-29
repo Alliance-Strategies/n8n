@@ -181,7 +181,7 @@ describe('LogsOverviewPanel', () => {
 		expect(row2.queryByText('555 Tokens')).toBeInTheDocument();
 	});
 
-	it('should render a canvas group as a group row with node count and no node icon', async () => {
+	it('should render a canvas group as a group row with no node icon', async () => {
 		const workflow = createTestWorkflowObject({
 			id: 'w1',
 			nodes: [
@@ -224,7 +224,6 @@ describe('LogsOverviewPanel', () => {
 		);
 
 		expect(groupRow.getByText('My Group')).toBeInTheDocument();
-		expect(groupRow.getByTestId('logs-overview-group-node-count')).toHaveTextContent('2 nodes');
 		// A group row has no node icon
 		expect(groupRow.queryByRole('img')).not.toBeInTheDocument();
 	});

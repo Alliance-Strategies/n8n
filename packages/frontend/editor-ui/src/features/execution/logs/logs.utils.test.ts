@@ -1851,7 +1851,6 @@ describe('createLogTree with canvas groups', () => {
 		const groupEntry = expectGroup(logs[1]);
 		expect(groupEntry.group.id).toBe('group-1');
 		expect(groupEntry.segmentIndex).toBe(0);
-		expect(groupEntry.executedNodeCount).toBe(2);
 		expect(groupEntry.children.map((c) => expectNode(c).node.name)).toEqual(['B', 'C']);
 		expect(groupEntry.children.every((c) => c.parent === groupEntry)).toBe(true);
 
@@ -1865,7 +1864,6 @@ describe('createLogTree with canvas groups', () => {
 		]);
 
 		const groupEntry = expectGroup(logs[1]);
-		expect(groupEntry.executedNodeCount).toBe(1);
 		expect(groupEntry.children.map((c) => expectNode(c).node.name)).toEqual(['B']);
 	});
 

@@ -42,7 +42,6 @@ export type GroupLogEntry = BaseLogEntry & {
 	group: IWorkflowGroup;
 	/** Which appearance of this group this is (groups split by branching/loops appear multiple times) */
 	segmentIndex: number;
-	executedNodeCount: number;
 	/** Whether any member execution (including descendants) errored. */
 	hasError: boolean;
 	boundaries: { inputs: GroupBoundaryRunData[]; outputs: GroupBoundaryRunData[] };

@@ -52,14 +52,6 @@ const displayName = computed(() =>
 		? groupData.value.group.name
 		: (props.latestInfo?.name ?? nodeData.value?.node.name ?? ''),
 );
-const groupNodeCountText = computed(() =>
-	groupData.value
-		? locale.baseText('logs.overview.body.group.nodeCount', {
-				adjustToNumber: groupData.value.executedNodeCount,
-				interpolate: { count: groupData.value.executedNodeCount },
-			})
-		: '',
-);
 const isRunning = computed(() => runData.value?.executionStatus === 'running');
 const isWaiting = computed(() => runData.value?.executionStatus === 'waiting');
 const isSettled = computed(() => !isRunning.value && !isWaiting.value);
@@ -172,15 +164,6 @@ watch(
 			:is-error="isError"
 			:is-deleted="latestInfo?.deleted ?? false"
 		/>
-		<N8nText
-			v-if="groupData"
-			tag="div"
-			color="text-light"
-			size="small"
-			:class="$style.groupNodeCount"
-			data-test-id="logs-overview-group-node-count"
-			>{{ groupNodeCountText }}</N8nText
-		>
 		<N8nText
 			v-if="!isCompact && !groupData"
 			tag="div"
@@ -366,15 +349,7 @@ watch(
 
 /* Groups have no icon, so inset the label to match where node labels start */
 .groupName {
-	flex-grow: 0;
-	flex-basis: auto;
 	padding-inline-start: var(--spacing--2xs);
-}
-
-.groupNodeCount {
-	flex-grow: 1;
-	flex-shrink: 0;
-	padding-inline-start: 0;
 }
 
 .timeTook {

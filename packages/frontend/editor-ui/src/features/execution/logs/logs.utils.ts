@@ -424,15 +424,6 @@ function computeGroupBoundaries(
 }
 
 function finalizeGroupEntry(group: GroupLogEntry, context: LogTreeCreationContext): void {
-	const executedNodeIds = new Set<string>();
-
-	for (const child of group.children) {
-		if (isNodeLog(child) && child.runData !== undefined) {
-			executedNodeIds.add(child.node.id);
-		}
-	}
-
-	group.executedNodeCount = executedNodeIds.size;
 	group.hasError = group.children.some(entryContainsError);
 	// A group has no own tokens
 	group.boundaries = computeGroupBoundaries(group, context);
@@ -476,7 +467,6 @@ function groupContiguousEntries(entries: LogEntry[], context: LogTreeCreationCon
 				type: 'group',
 				group,
 				segmentIndex,
-				executedNodeCount: 0,
 				hasError: false,
 				boundaries: { inputs: [], outputs: [] },
 				parent: context.parent,
