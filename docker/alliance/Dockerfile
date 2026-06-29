@@ -1,52 +1,53 @@
 # Alliance Abroad — License-Free n8n Fork
-# Build strategy: Install n8n from npm on standard node:alpine, then patch license files
-#
+# Build strategy: Install n8n from npm on standard node:alpine, then patch license files.
 # This avoids the n8nio/base image tar format issues in Cloud Build.
 
+# ── Stage 1: Install and patch ────────────────────────────────────────────────
 FROM node:24-alpine AS installer
 
-# Install n8n from npm
-RUN npm install -g n8n@2.26.9 --omit=dev 2>&1 | tail -5
+# Install n8n from npm (global install)
+RUN npm install -g n8n@2.26.9 --omit=dev
 
-# Apply Alliance patches to the installed n8n
+# Apply Alliance patch: license.js — isLicensed() always returns true
 COPY docker/alliance-patches/license.js \
      /usr/local/lib/node_modules/n8n/dist/license.js
 
+# Apply Alliance patch: controller.registry.js — license middleware always calls next()
 COPY docker/alliance-patches/controller.registry.js \
      /usr/local/lib/node_modules/n8n/dist/controller.registry.js
 
-# Patch @n8n/backend-common license-state.js in both possible locations
+# Apply Alliance patch: license-state.js — all feature/quota checks return true/UNLIMITED
 COPY docker/alliance-patches/license-state.js /tmp/alliance-license-state.js
 
 RUN set -e; \
     HOISTED="/usr/local/lib/node_modules/n8n/node_modules/@n8n/backend-common/dist/license-state.js"; \
     NESTED="/usr/local/lib/node_modules/@n8n/backend-common/dist/license-state.js"; \
-    if [ -f "$HOISTED" ]; then cp /tmp/alliance-license-state.js "$HOISTED" && echo "Patched hoisted"; fi; \
-    if [ -f "$NESTED" ]; then cp /tmp/alliance-license-state.js "$NESTED" && echo "Patched nested"; fi; \
+    if [ -f "$HOISTED" ]; then cp /tmp/alliance-license-state.js "$HOISTED" && echo "Patched hoisted @n8n/backend-common"; fi; \
+    if [ -f "$NESTED" ]; then cp /tmp/alliance-license-state.js "$NESTED" && echo "Patched nested @n8n/backend-common"; fi; \
     rm /tmp/alliance-license-state.js; \
-    echo "Alliance patches applied"
+    echo "Alliance license patches applied successfully"
 
-# Runtime image
+# ── Stage 2: Runtime image ────────────────────────────────────────────────────
 FROM node:24-alpine
 
 ENV NODE_ENV=production \
     N8N_RELEASE_TYPE=stable \
     SHELL=/bin/sh
 
-# Install runtime dependencies (tini for signal handling)
+# Install tini (signal handling) and su-exec
 RUN apk add --no-cache tini su-exec
 
-# Copy installed n8n from installer stage
+# Copy patched n8n installation from installer stage
 COPY --from=installer /usr/local/lib/node_modules/n8n /usr/local/lib/node_modules/n8n
-COPY --from=installer /usr/local/bin/n8n /usr/local/bin/n8n 2>/dev/null || true
 
-# Create n8n symlink if not copied
-RUN ln -sf /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n 2>/dev/null || true
+# Create the n8n CLI symlink (npm global install creates this in the installer stage
+# but it may be a symlink to the installer's node_modules path — recreate it cleanly)
+RUN ln -sf /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n
 
-# Create node user data directory
-RUN addgroup -S node 2>/dev/null || true && \
-    adduser -S -G node node 2>/dev/null || true && \
-    mkdir -p /home/node/.n8n && \
+# Create node user and data directory
+RUN addgroup -S node 2>/dev/null; \
+    adduser -S -G node node 2>/dev/null; \
+    mkdir -p /home/node/.n8n; \
     chown -R node:node /home/node
 
 WORKDIR /home/node
