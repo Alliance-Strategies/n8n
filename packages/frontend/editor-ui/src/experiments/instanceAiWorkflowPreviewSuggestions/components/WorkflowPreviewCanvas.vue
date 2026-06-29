@@ -430,9 +430,7 @@ function isEdgeSuccess(connection: PreviewWorkflowConnection): boolean {
 						:offset-x="bounds.minX"
 						:offset-y="bounds.minY"
 						:icon-override="
-							crmCycleNodeIds.has(node.id) && crmCycleVisible
-								? crmCurrentVariant?.icon
-								: undefined
+							crmCycleNodeIds.has(node.id) && crmCycleVisible ? crmCurrentVariant?.icon : undefined
 						"
 					/>
 				</div>

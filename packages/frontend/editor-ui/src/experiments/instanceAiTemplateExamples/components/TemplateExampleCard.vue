@@ -1,3 +1,4 @@
+<!-- Experiment cleanup: remove with InstanceAiTemplateExamplesExperiment -->
 <script lang="ts" setup>
 import type { ITemplatesWorkflow } from '@n8n/rest-api-client/api/templates';
 import TemplateNodeIconSet from './TemplateNodeIconSet.vue';

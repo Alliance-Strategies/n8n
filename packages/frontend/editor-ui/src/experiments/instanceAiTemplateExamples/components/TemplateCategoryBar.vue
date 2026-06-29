@@ -1,3 +1,4 @@
+<!-- Experiment cleanup: remove with InstanceAiTemplateExamplesExperiment -->
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue';
 import type { ITemplatesCategory } from '@n8n/rest-api-client/api/templates';
