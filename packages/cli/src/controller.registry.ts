@@ -221,14 +221,9 @@ export class ControllerRegistry {
 		return middlewares;
 	}
 
-	private createLicenseMiddleware(feature: BooleanLicenseFeature): RequestHandler {
-		return (_req, res, next) => {
-			if (!this.license.isLicensed(feature)) {
-				res.status(403).json({ status: 'error', message: 'Plan lacks license for this feature' });
-				return;
-			}
-			next();
-		};
+	private createLicenseMiddleware(_feature: BooleanLicenseFeature): RequestHandler {
+		// Alliance fork: all features unlocked — always pass
+		return (_req, _res, next) => next();
 	}
 
 	private createScopedMiddleware(accessScope: AccessScope): RequestHandler {

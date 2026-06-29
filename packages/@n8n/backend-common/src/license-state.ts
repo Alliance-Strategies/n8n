@@ -1,15 +1,17 @@
+/**
+ * Alliance Abroad — License-Free Fork
+ *
+ * Patched LicenseState: all boolean checks return true, all quotas return
+ * UNLIMITED_LICENSE_QUOTA. No license provider is required.
+ *
+ * Patched by: alliance-platform-bot
+ * Upstream file: packages/@n8n/backend-common/src/license-state.ts
+ */
 import type { BooleanLicenseFeature } from '@n8n/constants';
-import { LICENSE_FEATURES, UNLIMITED_LICENSE_QUOTA } from '@n8n/constants';
+import { UNLIMITED_LICENSE_QUOTA } from '@n8n/constants';
 import { Service } from '@n8n/di';
-import { UnexpectedError } from 'n8n-workflow';
 
 import type { FeatureReturnType, LicenseProvider } from './types';
-
-class ProviderNotSetError extends UnexpectedError {
-	constructor() {
-		super('Cannot query license state because license provider has not been set');
-	}
-}
 
 @Service()
 export class LicenseState {
@@ -19,256 +21,76 @@ export class LicenseState {
 		this.licenseProvider = provider;
 	}
 
-	private assertProvider(): asserts this is { licenseProvider: LicenseProvider } {
-		if (!this.licenseProvider) throw new ProviderNotSetError();
+	// --------------------
+	//     core queries — always return true / unlimited
+	// --------------------
+
+	isLicensed(_feature: BooleanLicenseFeature | BooleanLicenseFeature[]): boolean {
+		return true;
+	}
+
+	getValue<T extends keyof FeatureReturnType>(_feature: T): FeatureReturnType[T] {
+		return UNLIMITED_LICENSE_QUOTA as FeatureReturnType[T];
 	}
 
 	// --------------------
-	//     core queries
-	// --------------------
-	/*
-	 * If the feature is a string. checks if the feature is licensed
-	 * If the feature is an array of strings, it checks if any of the features are licensed
-	 */
-	isLicensed(feature: BooleanLicenseFeature | BooleanLicenseFeature[]) {
-		this.assertProvider();
-
-		if (typeof feature === 'string') return this.licenseProvider.isLicensed(feature);
-
-		for (const featureName of feature) {
-			if (this.licenseProvider.isLicensed(featureName)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	getValue<T extends keyof FeatureReturnType>(feature: T): FeatureReturnType[T] {
-		this.assertProvider();
-
-		return this.licenseProvider.getValue(feature);
-	}
-
-	// --------------------
-	//      booleans
+	//      booleans — all true
 	// --------------------
 
-	isCustomRolesLicensed() {
-		return this.isLicensed(LICENSE_FEATURES.CUSTOM_ROLES);
-	}
-
-	isDynamicCredentialsLicensed() {
-		return this.isLicensed(LICENSE_FEATURES.DYNAMIC_CREDENTIALS);
-	}
-
-	isPersonalSpacePolicyLicensed() {
-		return this.isLicensed(LICENSE_FEATURES.PERSONAL_SPACE_POLICY);
-	}
-
-	isSharingLicensed() {
-		return this.isLicensed('feat:sharing');
-	}
-
-	isLogStreamingLicensed() {
-		return this.isLicensed('feat:logStreaming');
-	}
-
-	isLdapLicensed() {
-		return this.isLicensed('feat:ldap');
-	}
-
-	isSamlLicensed() {
-		return this.isLicensed('feat:saml');
-	}
-
-	isOidcLicensed() {
-		return this.isLicensed('feat:oidc');
-	}
-
-	isMFAEnforcementLicensed() {
-		return this.isLicensed('feat:mfaEnforcement');
-	}
-
-	isApiKeyScopesLicensed() {
-		return this.isLicensed('feat:apiKeyScopes');
-	}
-
-	isAiAssistantLicensed() {
-		return this.isLicensed('feat:aiAssistant');
-	}
-
-	isAskAiLicensed() {
-		return this.isLicensed('feat:askAi');
-	}
-
-	isAiCreditsLicensed() {
-		return this.isLicensed('feat:aiCredits');
-	}
-
-	isAiGatewayLicensed() {
-		return this.isLicensed('feat:aiGateway');
-	}
-
-	isAdvancedExecutionFiltersLicensed() {
-		return this.isLicensed('feat:advancedExecutionFilters');
-	}
-
-	isAdvancedPermissionsLicensed() {
-		return this.isLicensed('feat:advancedPermissions');
-	}
-
-	isDebugInEditorLicensed() {
-		return this.isLicensed('feat:debugInEditor');
-	}
-
-	isBinaryDataS3Licensed() {
-		return this.isLicensed('feat:binaryDataS3');
-	}
-
-	isBinaryDataAzureLicensed() {
-		return this.isLicensed('feat:binaryDataAz');
-	}
-
-	isExecutionDataS3Licensed() {
-		return this.isLicensed('feat:executionDataS3');
-	}
-
-	isExecutionDataAzureLicensed() {
-		return this.isLicensed('feat:executionDataAz');
-	}
-
-	isMultiMainLicensed() {
-		return this.isLicensed('feat:multipleMainInstances');
-	}
-
-	isVariablesLicensed() {
-		return this.isLicensed('feat:variables');
-	}
-
-	isSourceControlLicensed() {
-		return this.isLicensed('feat:sourceControl');
-	}
-
-	isExternalSecretsLicensed() {
-		return this.isLicensed('feat:externalSecrets');
-	}
-
-	isAPIDisabled() {
-		return this.isLicensed('feat:apiDisabled');
-	}
-
-	isWorkerViewLicensed() {
-		return this.isLicensed('feat:workerView');
-	}
-
-	isProjectRoleAdminLicensed() {
-		return this.isLicensed('feat:projectRole:admin');
-	}
-
-	isProjectRoleEditorLicensed() {
-		return this.isLicensed('feat:projectRole:editor');
-	}
-
-	isProjectRoleViewerLicensed() {
-		return this.isLicensed('feat:projectRole:viewer');
-	}
-
-	isCustomNpmRegistryLicensed() {
-		return this.isLicensed('feat:communityNodes:customRegistry');
-	}
-
-	isFoldersLicensed() {
-		return this.isLicensed('feat:folders');
-	}
-
-	isInsightsSummaryLicensed() {
-		return this.isLicensed('feat:insights:viewSummary');
-	}
-
-	isInsightsDashboardLicensed() {
-		return this.isLicensed('feat:insights:viewDashboard');
-	}
-
-	isInsightsHourlyDataLicensed() {
-		return this.isLicensed('feat:insights:viewHourlyData');
-	}
-
-	isWorkflowDiffsLicensed() {
-		return this.isLicensed('feat:workflowDiffs');
-	}
-
-	isDataRedactionLicensed() {
-		return this.isLicensed(LICENSE_FEATURES.DATA_REDACTION);
-	}
-
-	isProvisioningLicensed() {
-		return this.isLicensed(['feat:saml', 'feat:oidc']);
-	}
-
-	isOtelCustomSpanAttributesLicensed() {
-		return this.isLicensed(LICENSE_FEATURES.OTEL_CUSTOM_SPAN_ATTRIBUTES);
-	}
+	isCustomRolesLicensed() { return true; }
+	isDynamicCredentialsLicensed() { return true; }
+	isPersonalSpacePolicyLicensed() { return true; }
+	isSharingLicensed() { return true; }
+	isLogStreamingLicensed() { return true; }
+	isLdapLicensed() { return true; }
+	isSamlLicensed() { return true; }
+	isOidcLicensed() { return true; }
+	isMFAEnforcementLicensed() { return true; }
+	isApiKeyScopesLicensed() { return true; }
+	isAiAssistantLicensed() { return true; }
+	isAskAiLicensed() { return true; }
+	isAiCreditsLicensed() { return true; }
+	isAiGatewayLicensed() { return true; }
+	isAdvancedExecutionFiltersLicensed() { return true; }
+	isAdvancedPermissionsLicensed() { return true; }
+	isDebugInEditorLicensed() { return true; }
+	isBinaryDataS3Licensed() { return true; }
+	isBinaryDataAzureLicensed() { return true; }
+	isExecutionDataS3Licensed() { return true; }
+	isExecutionDataAzureLicensed() { return true; }
+	isMultiMainLicensed() { return true; }
+	isVariablesLicensed() { return true; }
+	isSourceControlLicensed() { return true; }
+	isExternalSecretsLicensed() { return true; }
+	isAPIDisabled() { return false; }  // keep API enabled
+	isWorkerViewLicensed() { return true; }
+	isProjectRoleAdminLicensed() { return true; }
+	isProjectRoleEditorLicensed() { return true; }
+	isProjectRoleViewerLicensed() { return true; }
+	isCustomNpmRegistryLicensed() { return true; }
+	isFoldersLicensed() { return true; }
+	isInsightsSummaryLicensed() { return true; }
+	isInsightsDashboardLicensed() { return true; }
+	isInsightsHourlyDataLicensed() { return true; }
+	isWorkflowDiffsLicensed() { return true; }
+	isDataRedactionLicensed() { return true; }
+	isProvisioningLicensed() { return true; }
+	isOtelCustomSpanAttributesLicensed() { return true; }
 
 	// --------------------
-	//      integers
+	//      integers — all unlimited
 	// --------------------
 
-	getMaxUsers() {
-		return this.getValue('quota:users') ?? UNLIMITED_LICENSE_QUOTA;
-	}
-
-	getMaxActiveWorkflows() {
-		return this.getValue('quota:activeWorkflows') ?? UNLIMITED_LICENSE_QUOTA;
-	}
-
-	getMaxVariables() {
-		return this.getValue('quota:maxVariables') ?? UNLIMITED_LICENSE_QUOTA;
-	}
-
-	getMaxAiCredits() {
-		return this.getValue('quota:aiCredits') ?? 0;
-	}
-
-	getWorkflowHistoryPruneQuota() {
-		return this.getValue('quota:workflowHistoryPrune') ?? UNLIMITED_LICENSE_QUOTA;
-	}
-
-	getInsightsMaxHistory() {
-		return this.getValue('quota:insights:maxHistoryDays') ?? 7;
-	}
-
-	getInsightsRetentionMaxAge() {
-		return this.getValue('quota:insights:retention:maxAgeDays') ?? 180;
-	}
-
-	getInsightsRetentionPruneInterval() {
-		return this.getValue('quota:insights:retention:pruneIntervalDays') ?? 24;
-	}
-
-	getMaxTeamProjects() {
-		return this.getValue('quota:maxTeamProjects') ?? 0;
-	}
-
-	isTeamProjectsLicensed() {
-		const quota = this.getMaxTeamProjects();
-		return quota === UNLIMITED_LICENSE_QUOTA || quota > 0;
-	}
-
-	getMaxWorkflowsWithEvaluations() {
-		return this.getValue('quota:evaluations:maxWorkflows') ?? 0;
-	}
-
-	/**
-	 * Effective evaluation concurrency cap issued by the license server.
-	 * Returns `undefined` (not a number) when the quota is absent so callers
-	 * can distinguish "the license intentionally set this to a value" from
-	 * "the license doesn't have an opinion, fall through to the tier default".
-	 *
-	 * `-1` from the license is honoured as "unlimited", matching the
-	 * `N8N_CONCURRENCY_EVALUATION_LIMIT` env-var convention.
-	 */
-	getEvaluationConcurrencyQuota(): number | undefined {
-		return this.getValue('quota:evaluations:concurrencyLimit');
-	}
+	getMaxUsers() { return UNLIMITED_LICENSE_QUOTA; }
+	getMaxActiveWorkflows() { return UNLIMITED_LICENSE_QUOTA; }
+	getMaxVariables() { return UNLIMITED_LICENSE_QUOTA; }
+	getMaxAiCredits() { return UNLIMITED_LICENSE_QUOTA; }
+	getWorkflowHistoryPruneQuota() { return UNLIMITED_LICENSE_QUOTA; }
+	getInsightsMaxHistory() { return UNLIMITED_LICENSE_QUOTA; }
+	getInsightsRetentionMaxAge() { return UNLIMITED_LICENSE_QUOTA; }
+	getInsightsRetentionPruneInterval() { return 24; }
+	getMaxTeamProjects() { return UNLIMITED_LICENSE_QUOTA; }
+	isTeamProjectsLicensed() { return true; }
+	getMaxWorkflowsWithEvaluations() { return UNLIMITED_LICENSE_QUOTA; }
+	getEvaluationConcurrencyQuota(): number | undefined { return undefined; }
 }

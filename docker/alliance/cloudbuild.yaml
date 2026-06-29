@@ -1,0 +1,43 @@
+steps:
+  # Step 1: Build the Alliance n8n image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'N8N_VERSION=${_N8N_VERSION}'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n:${_N8N_VERSION}-alliance'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n:latest'
+      - '-f'
+      - 'docker/alliance/Dockerfile'
+      - '.'
+    dir: '/workspace'
+
+  # Step 2: Push versioned tag
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-versioned
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n:${_N8N_VERSION}-alliance'
+    waitFor: ['build']
+
+  # Step 3: Push latest tag
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-latest
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n:latest'
+    waitFor: ['build']
+
+substitutions:
+  _N8N_VERSION: 'latest'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - 'us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n:${_N8N_VERSION}-alliance'
+  - 'us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n:latest'
