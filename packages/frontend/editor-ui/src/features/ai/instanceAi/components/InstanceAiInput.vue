@@ -45,6 +45,7 @@ const props = withDefaults(
 		suggestionsComponent?: Component;
 		suggestionCatalogVersion?: string;
 		placeholderKey?: BaseTextKey;
+		boldPlaceholder?: boolean; // Experiment cleanup: remove with AiWorkflowPreviewSuggestionsExperiment
 	}>(),
 	{
 		isStreaming: false,
@@ -81,9 +82,15 @@ function appendText(text: string) {
 	inputText.value += text;
 }
 
+// Experiment cleanup: remove with InstanceAiTemplateExamplesExperiment
+function setText(text: string) {
+	inputText.value = text;
+}
+
 defineExpose({
 	focus,
 	appendText,
+	setText,
 });
 
 const isBusy = computed(() =>
@@ -314,7 +321,11 @@ const resizable = computed(() => {
 		<ChatInputBase
 			ref="chatInputRef"
 			v-model="inputText"
-			:class="{ [$style.planEditInput]: props.isPlanEditMode, [$style.inputWrapper]: true }"
+			:class="{
+				[$style.planEditInput]: props.isPlanEditMode,
+				[$style.inputWrapper]: true,
+				[$style.boldPlaceholder]: props.boldPlaceholder, // Experiment cleanup: remove with AiWorkflowPreviewSuggestionsExperiment
+			}"
 			:placeholder="placeholder"
 			:is-streaming="props.isPlanEditMode ? false : props.isStreaming"
 			:can-submit="canSubmit"
@@ -443,6 +454,16 @@ const resizable = computed(() => {
 
 .planEditInput {
 	gap: var(--spacing--2xs);
+}
+
+.boldPlaceholder :global(textarea::placeholder) {
+	color: var(--color--text);
+	opacity: 1;
+}
+
+.boldPlaceholder :global(textarea::-webkit-input-placeholder) {
+	color: var(--color--text);
+	opacity: 1;
 }
 
 :global(.suggestions-fade-enter-active) {
