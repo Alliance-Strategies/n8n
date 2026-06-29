@@ -9,14 +9,14 @@ FROM node:24-alpine AS installer
 RUN npm install -g n8n@2.26.9 --omit=dev 2>&1 | tail -5
 
 # Apply Alliance patches to the installed n8n
-COPY alliance-patches/license.js \
+COPY docker/alliance-patches/license.js \
      /usr/local/lib/node_modules/n8n/dist/license.js
 
-COPY alliance-patches/controller.registry.js \
+COPY docker/alliance-patches/controller.registry.js \
      /usr/local/lib/node_modules/n8n/dist/controller.registry.js
 
 # Patch @n8n/backend-common license-state.js in both possible locations
-COPY alliance-patches/license-state.js /tmp/alliance-license-state.js
+COPY docker/alliance-patches/license-state.js /tmp/alliance-license-state.js
 
 RUN set -e; \
     HOISTED="/usr/local/lib/node_modules/n8n/node_modules/@n8n/backend-common/dist/license-state.js"; \
