@@ -1,18 +1,24 @@
 import { createWorkflow, testDb } from '@n8n/backend-test-utils';
-import { WorkflowPublicationTriggerStatusRepository, WorkflowRepository } from '@n8n/db';
+import {
+	WorkflowPublicationOutboxRepository,
+	WorkflowPublicationTriggerStatusRepository,
+	WorkflowRepository,
+} from '@n8n/db';
 import { Container } from '@n8n/di';
 
 describe('WorkflowPublicationTriggerStatusRepository', () => {
 	let repo: WorkflowPublicationTriggerStatusRepository;
+	let outboxRepo: WorkflowPublicationOutboxRepository;
 	let workflowRepository: WorkflowRepository;
 
 	beforeAll(async () => {
 		await testDb.init();
 		repo = Container.get(WorkflowPublicationTriggerStatusRepository);
+		outboxRepo = Container.get(WorkflowPublicationOutboxRepository);
 		workflowRepository = Container.get(WorkflowRepository);
 	});
 	afterEach(async () => {
-		await testDb.truncate(['WorkflowEntity', 'SharedWorkflow']);
+		await testDb.truncate(['WorkflowEntity', 'SharedWorkflow', 'WorkflowPublicationOutbox']);
 	});
 	afterAll(async () => await testDb.terminate());
 
@@ -52,5 +58,36 @@ describe('WorkflowPublicationTriggerStatusRepository', () => {
 		await workflowRepository.delete(wf.id);
 
 		expect(await repo.findByWorkflowId(wf.id)).toEqual([]);
+	});
+
+	it('findLatestByWorkflowId returns the highest-id outbox record', async () => {
+		const wf = await createWorkflow();
+		// Insert two completed rows — completed has no partial-unique-index constraint,
+		// so both rows can coexist for the same workflowId.
+		const first = outboxRepo.create({
+			workflowId: wf.id,
+			publishedVersionId: 'v1',
+			status: 'completed',
+			errorMessage: null,
+		});
+		const second = outboxRepo.create({
+			workflowId: wf.id,
+			publishedVersionId: 'v2',
+			status: 'completed',
+			errorMessage: null,
+		});
+		await outboxRepo.save(first);
+		await outboxRepo.save(second);
+
+		const latest = await outboxRepo.findLatestByWorkflowId(wf.id);
+		expect(latest).not.toBeNull();
+		expect(latest!.id).toBe(second.id);
+		expect(latest!.publishedVersionId).toBe('v2');
+	});
+
+	it('findLatestByWorkflowId returns null when no outbox records exist', async () => {
+		const wf = await createWorkflow();
+		const result = await outboxRepo.findLatestByWorkflowId(wf.id);
+		expect(result).toBeNull();
 	});
 });
