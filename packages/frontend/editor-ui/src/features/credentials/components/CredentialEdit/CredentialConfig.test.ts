@@ -347,7 +347,7 @@ describe('CredentialConfig', () => {
 			expect(screen.getByTestId('credential-type-card-end-user')).toBeInTheDocument();
 		});
 
-		it('should disable the end-user credential card when the credential is already shared', async () => {
+		it('should keep the end-user credential card enabled when the credential is already shared', async () => {
 			renderComponent({
 				props: {
 					isManaged: false,
@@ -359,7 +359,6 @@ describe('CredentialConfig', () => {
 					isOAuthType: true,
 					isNewCredential: false,
 					isResolvable: false,
-					isShared: true,
 					credentialPermissions: {
 						create: false,
 						update: true,
@@ -372,7 +371,7 @@ describe('CredentialConfig', () => {
 				},
 			});
 
-			expect(screen.getByTestId('credential-type-card-end-user')).toHaveAttribute(
+			expect(screen.getByTestId('credential-type-card-end-user')).not.toHaveAttribute(
 				'aria-disabled',
 				'true',
 			);
