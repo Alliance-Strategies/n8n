@@ -1,0 +1,127 @@
+name: Alliance — Weekly Upstream Sync
+
+# Runs every Monday at 06:00 UTC.
+# Checks for new n8n upstream releases, re-applies the Alliance license patches,
+# builds a new Docker image, and deploys to GKE development.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # Monday 06:00 UTC
+  workflow_dispatch:        # Manual trigger for testing
+    inputs:
+      force:
+        description: 'Force rebuild even if already on latest version'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write    # Push patch commits
+  packages: write    # Push to Artifact Registry (via OIDC)
+
+jobs:
+  sync:
+    name: Sync upstream n8n patches
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Get latest upstream n8n version
+        id: versions
+        run: |
+          LATEST=$(curl -s https://registry.npmjs.org/n8n/latest | python3 -c "import json,sys; print(json.load(sys.stdin)['version'])")
+          CURRENT=$(grep -oP '(?<=n8n@)\d+\.\d+\.\d+' docker/alliance/Dockerfile | head -1 || echo "0.0.0")
+          echo "latest=$LATEST" >> $GITHUB_OUTPUT
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+          echo "Latest upstream: $LATEST | Current in fork: $CURRENT"
+
+      - name: Skip if already on latest
+        if: steps.versions.outputs.latest == steps.versions.outputs.current && github.event.inputs.force != 'true'
+        run: |
+          echo "Already on latest version ${{ steps.versions.outputs.latest }} — nothing to do"
+          exit 0
+
+      - name: Download and patch compiled JS files
+        run: |
+          python3 .github/scripts/patch_n8n.py ${{ steps.versions.outputs.latest }}
+
+      - name: Commit updated patches
+        run: |
+          git config user.email "alliance-platform-bot@allianceabroad.com"
+          git config user.name "alliance-platform-bot"
+          git add docker/alliance-patches/ docker/alliance/Dockerfile
+          if git diff --cached --quiet; then
+            echo "No patch changes — skipping commit"
+          else
+            git commit -m "chore(sync): update patches for n8n@${{ steps.versions.outputs.latest }}
+
+Automated upstream sync by alliance-upstream-sync GitHub Actions workflow.
+Previous version: ${{ steps.versions.outputs.current }}
+New version: ${{ steps.versions.outputs.latest }}"
+            git push origin master
+          fi
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: skilled-script-469819-f2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image
+        run: |
+          VERSION=${{ steps.versions.outputs.latest }}
+          IMAGE="us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n"
+          docker build \
+            -f docker/alliance/Dockerfile \
+            -t "${IMAGE}:${VERSION}-alliance" \
+            -t "${IMAGE}:latest" \
+            .
+          docker push "${IMAGE}:${VERSION}-alliance"
+          docker push "${IMAGE}:latest"
+          echo "Pushed ${IMAGE}:${VERSION}-alliance and ${IMAGE}:latest"
+
+      - name: Deploy to GKE development
+        run: |
+          VERSION=${{ steps.versions.outputs.latest }}
+          IMAGE="us-central1-docker.pkg.dev/skilled-script-469819-f2/alliance-abroad/n8n"
+          gcloud container clusters get-credentials globus-cluster-development \
+            --region=us-central1 \
+            --project=skilled-script-469819-f2
+          kubectl set image deployment/n8n \
+            n8n="${IMAGE}:${VERSION}-alliance" \
+            -n n8n
+          kubectl rollout status deployment/n8n -n n8n --timeout=5m
+          echo "Deployed n8n ${VERSION}-alliance to GKE development"
+
+      - name: Post to Platform Pulse
+        if: always()
+        env:
+          TEAMS_BOT_APP_ID: ${{ secrets.TEAMS_BOT_APP_ID }}
+          TEAMS_BOT_APP_SECRET: ${{ secrets.TEAMS_BOT_APP_SECRET }}
+        run: |
+          python3 .github/scripts/notify_teams.py \
+            "${{ steps.versions.outputs.current }}" \
+            "${{ steps.versions.outputs.latest }}" \
+            "${{ job.status }}" \
+            "${{ github.run_id }}"
