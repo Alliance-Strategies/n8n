@@ -7,7 +7,7 @@ name: Alliance - Weekly Upstream Sync
 on:
   schedule:
     - cron: '0 6 * * 1'   # Monday 06:00 UTC
-  workflow_dispatch:        # Manual trigger for testing
+  workflow_dispatch:        # Manual trigger for testing or forced rebuild
     inputs:
       force:
         description: 'Force rebuild even if already on latest version'
