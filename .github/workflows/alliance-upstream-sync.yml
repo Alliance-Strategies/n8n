@@ -1,4 +1,4 @@
-name: Alliance — Weekly Upstream Sync
+name: Alliance - Weekly Upstream Sync
 
 # Runs every Monday at 06:00 UTC.
 # Checks for new n8n upstream releases, re-applies the Alliance license patches,
